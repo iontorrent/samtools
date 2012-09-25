@@ -404,6 +404,13 @@ void bam_mplp_set_maxcnt(bam_mplp_t iter, int maxcnt)
 		iter->iter[i]->maxcnt = maxcnt;
 }
 
+void bam_mplp_set_mask(bam_mplp_t iter, int mask)
+{
+    int i;
+    for (i = 0; i < iter->n; ++i)
+        iter->iter[i]->flag_mask = mask;
+}
+
 void bam_mplp_destroy(bam_mplp_t iter)
 {
 	int i;
