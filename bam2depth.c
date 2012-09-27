@@ -56,7 +56,7 @@ int main(int argc, char *argv[])
 int main_depth(int argc, char *argv[])
 #endif
 {
-	int i, n, tid, beg, end, pos, *n_plp, mask, baseQ = 0, mapQ = 0, min_len = 0, use_circos = 0, max_depth = -1,use_dups = 0,flag_on = 0,flag_off = 768;
+	int i, n, tid, beg, end, pos, *n_plp, mask, baseQ = 0, mapQ = 0, min_len = 0, use_circos = 0, max_depth = -1,flag_on = 0,flag_off = 1796;
 	const bam_pileup1_t **plp;
 	char *reg = 0; // specified region
 	void *bed = 0; // BED data structure
@@ -66,7 +66,7 @@ int main_depth(int argc, char *argv[])
         circos_t circos; circos.bin_size = 10000;
 
 	// parse the command line
-	while ((n = getopt(argc, argv, "r:b:q:Q:l:cB:m:df:F:")) >= 0) {
+	while ((n = getopt(argc, argv, "r:b:q:Q:l:cB:m:f:F:")) >= 0) {
 		switch (n) {
 			case 'l': min_len = atoi(optarg); break; // minimum query length
 			case 'r': reg = strdup(optarg); break;   // parsing a region requires a BAM header
@@ -76,17 +76,16 @@ int main_depth(int argc, char *argv[])
 			case 'c': use_circos = 1; break; // circos output
                         case 'm': max_depth = atoi(optarg); break; // max depth
                         case 'B': circos.bin_size = atoi(optarg); break; // circos bin size
-                        case 'd': use_dups = 1; break; // use duplicate reads in calculating depth
                         case 'f': flag_on = strtol(optarg,0,0); break; // flag to include reads in calculating depth
                         case 'F': flag_off = strtol(optarg,0,0); break; // flag to exclude reads in calculating depth
 		}
 	}
 	if (optind == argc) {
-		fprintf(stderr, "Usage: depth [-r reg] [-q baseQthres] [-Q mapQthres] [-l minQLen] [-b in.bed] [-c [-B binSize]]  [-d] [-f include_flag] [-F exclude_flag] <in1.bam> [...]\n");
+		fprintf(stderr, "Usage: depth [-r reg] [-q baseQthres] [-Q mapQthres] [-l minQLen] [-b in.bed] [-c [-B binSize]] [-f include_flag] [-F exclude_flag] <in1.bam> [...]\n");
 		fprintf(stderr, "Notes: \n\
 \n\
 By default the depth command excludes reads that are duplicates, failed platform QC, secondary mapping and unmapped reads\n\
-Use the -d flag to include duplicate reads in the calculation. The -f and -F flags can be used to include/exclude reads as\n\
+This can be reset using the -F flag. The -f and -F flags can be used to include/exclude reads as\n\
 necessary. e.g. depth -f 0x10 in.bam will generate coverage on the reverse strand. The default maximum coverage depth is \n\
 set to 1,000,000. This can be changed using the -m flag. The default setting using mpileup is 8000. \n\
 \n");
@@ -122,10 +121,8 @@ set to 1,000,000. This can be changed using the -m flag. The default setting usi
 	mplp = bam_mplp_init(n, read_bam, (void**)data); // initialization
         if(0 < max_depth) bam_mplp_set_maxcnt(mplp, max_depth); // set the maximum depth
         else bam_mplp_set_maxcnt(mplp,1000000); // set default maximim depth to 1M instead of 8000 in bam_mplp_init
-        if (use_dups) {
-            mask = BAM_FUNMAP | BAM_FSECONDARY | BAM_FQCFAIL; // Default mask = (BAM_FUNMAP|BAM_FSECONDARY|BAM_FQCFAIL|BAM_FDUP)
-            bam_mplp_set_mask(mplp,mask); // set mask to include duplicate reads
-        }
+        mask = flag_off; // Default mask = (BAM_FUNMAP|BAM_FSECONDARY|BAM_FQCFAIL|BAM_FDUP)
+        bam_mplp_set_mask(mplp,mask); // set mask for pileup 
 	n_plp = calloc(n, sizeof(int)); // n_plp[i] is the number of covering reads from the i-th BAM
 	plp = calloc(n, sizeof(void*)); // plp[i] points to the array of covering reads (internal in mplp)
 	while (bam_mplp_auto(mplp, &tid, &pos, n_plp, plp) > 0) { // come to the next covered position
